@@ -24,20 +24,6 @@ object MigrateApp extends ZIOAppDefault:
       )
 
   def run =
-    /*
-    // (args: List[String]): ZIO[Any, Throwable, Unit] =
-    println("asfasdf")
-    if (args.length != 1) then
-      scala.Console.err.println("Provide migration directory as first argument.")
-      sys.exit(1)
-
-    val path = Paths.get(args.head)
-    if (path == null) then
-      scala.Console.err.println("Provide migration directory as first argument.")
-      sys.exit(1)
-
-     */
-    // program(path)
     for {
       args <- getArgs
 
