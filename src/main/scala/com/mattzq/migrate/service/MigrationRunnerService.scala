@@ -20,14 +20,14 @@ object MigrationRunnerService:
 case class MigrationRunnerServiceImpl(db: DBAccessService, migrationService: MigrationService) extends MigrationRunnerService:
   override def run(path: Path): Task[Unit] =
     for {
-      _ <- Console.printLine(s"hai")
-
       // read migrations from local directory
       migrationsLocal <- migrationService.discoverMigrations(path)
 
+      _ <- Console.printLine(migrationsLocal.toTableString("Local Migrations Found:"))
+      _ <- Console.printLine(" ")
+
       // check if the database has the migration table
       hasDbMigrationTable <- db.hasMigrationTable
-      _ <- Console.printLine(s"hasDbMigrationTable? $hasDbMigrationTable")
 
       // create migration table if not existing
       _ <-
@@ -39,6 +39,9 @@ case class MigrationRunnerServiceImpl(db: DBAccessService, migrationService: Mig
       // read migrations from database table
       migrationHistory <- db.getMigrationTable
 
+      _ <- Console.printLine(migrationHistory.toTableString("Previously Applied Migrations:"))
+      _ <- Console.printLine(" ")
+
       // check the history is empty or matches the migration files in the local directory
       _ <-
         validate(migrationHistory, migrationsLocal) match
@@ -48,8 +51,8 @@ case class MigrationRunnerServiceImpl(db: DBAccessService, migrationService: Mig
       // gather list of migrations to execute
       plan <- ZIO.succeed(assemblePlan(migrationHistory, migrationsLocal))
 
-      _ <-
-        Console.printLine(s"plan -> $plan")
+      _ <- Console.printLine(plan.toTableString("Apply Migrations:"))
+      _ <- Console.printLine(" ")
 
       _ <- ZIO.foreach(plan.migrations)(migration => {
         db.runMigration(migration)

@@ -48,9 +48,7 @@ case class DBAccessServiceImpl(connection: DBConnectionService) extends DBAccess
 
   override def getMigrationTable: Task[MigrationCollection] =
     for {
-      _ <- Console.printLine("ennn1")
       results <- connection.executeQuery(QUERY_FIND_MIGRATION_ROW, true)
-      _ <- Console.printLine("ennn")
       migrations <-
         ZIO.attemptBlocking {
           var list: List[Migration] = List()
@@ -64,20 +62,18 @@ case class DBAccessServiceImpl(connection: DBConnectionService) extends DBAccess
             list = list :+ Migration(id, name, hash, None)
           list
         }
-      _ <- Console.printLine(s"xxennn -> $migrations")
     } yield MigrationCollection(migrations)
 
   override def runMigration(migration: Migration): Task[Unit] =
     for {
+      _ <- Console.printLine(s"Applying Migration ${migration.id} (${migration.name})...")
       script <-
         migration.content match
           case Some(script) => ZIO.succeed(script)
           case None => ZIO.fail(Exception("Migration script missing!"))
-      _ <- Console.printLine(s"attempt execute of migration ${migration.id}")
       _ <-
         {
           for {
-            _ <- Console.printLine(s"attempt execute of migration2 ${migration.id}")
             // Run the migration in a single transaction
             _ <- connection.executeUpdate(script)
             _ <- connection.executeUpdatePreparedQuery(QUERY_INSERT_MIGRATION, stmt => {
@@ -86,15 +82,15 @@ case class DBAccessServiceImpl(connection: DBConnectionService) extends DBAccess
               stmt.setString(3, migration.hash)
             })
             _ <- connection.commit
-            _ <- Console.printLine(s"migration succeeded ${migration.id}")
           } yield ()
         }.catchAll {
           error => for {
-            _ <- Console.printLine(s"error? ${error.toString}")
+            _ <- Console.printLine(s"Error Applying Migration ${migration.id}!")
+            _ <- Console.printLine(s"Error: ${error.toString}")
             _ <- connection.rollback
           } yield error
         }
-      _ <- Console.printLine(s"oom ${migration.id}")
+      _ <- Console.printLine(s"Migration Applied successfully. (${migration.id})")
     } yield ()
 
 object DBAccessServiceImpl:

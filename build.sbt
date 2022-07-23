@@ -48,3 +48,5 @@ lazy val dependencies = Seq(
     org.scalatestplus.`scalacheck-1-16`,
   ).map(_ % Test),
 )
+
+Compile / run / fork := true
