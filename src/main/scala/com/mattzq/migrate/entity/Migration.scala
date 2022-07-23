@@ -6,7 +6,8 @@ final case class Migration(
     id: Int,
     name: String,
     hash: String,
-    content: Option[String])
+    content: Option[String],
+  )
 
 object Migration:
   final val FILENAME_ID_REGEXP = raw"^(\d+).*".r
@@ -16,9 +17,14 @@ object Migration:
       case FILENAME_ID_REGEXP(id) => id.toInt
       case _ => -1
 
-  def byLocalFile(file: Path, content: String, hash: String): Migration =
+  def byLocalFile(
+      file: Path,
+      content: String,
+      hash: String,
+    ): Migration =
     Migration(
-      id=getIdFromFilename(file.getFileName.toString),
-      name=file.getFileName.toString,
-      hash=hash,
-      content=Some(content))
+      id = getIdFromFilename(file.getFileName.toString),
+      name = file.getFileName.toString,
+      hash = hash,
+      content = Some(content),
+    )

@@ -9,7 +9,7 @@ sealed trait DBSettingsService:
   def url: String
 
 class DBSettingsServiceImpl(
-    private val settings: DBSettings,
+    private val settings: DBSettings
   ) extends DBSettingsService:
   override def url: String =
     settings.url

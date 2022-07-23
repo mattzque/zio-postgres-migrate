@@ -1,6 +1,6 @@
 package com.mattzq.migrate
 
-import scala.util.{Try, Failure, Success}
+import scala.util.{ Try, Failure, Success }
 
 extension [T](value: T | Null)
   inline def toOption: Option[T] =

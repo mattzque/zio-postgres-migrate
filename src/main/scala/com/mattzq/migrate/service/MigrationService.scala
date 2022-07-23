@@ -3,9 +3,8 @@ package service
 
 import java.nio.file.Path
 import zio.*
-import com.mattzq.migrate.entity.{Migration, MigrationCollection}
+import com.mattzq.migrate.entity.{ Migration, MigrationCollection }
 import com.mattzq.migrate.service.DBSettingsServiceImpl.createFromEnv
-
 
 trait MigrationService:
   def discoverMigrations(path: Path): Task[MigrationCollection]
@@ -31,9 +30,7 @@ case class MigrationServiceImpl(fileService: FileService) extends MigrationServi
           files
             .lazyZip(contents)
             .lazyZip(hashes)
-            .map((file, content, hash) => {
-              Migration.byLocalFile(file, content, hash)
-            })
+            .map((file, content, hash) => Migration.byLocalFile(file, content, hash))
             .sortWith((s, t) => s.id < t.id)
         )
     } yield MigrationCollection(files)
@@ -45,4 +42,3 @@ object MigrationServiceImpl:
         fileService <- ZIO.service[FileService]
       } yield MigrationServiceImpl(fileService)
     }
-

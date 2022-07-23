@@ -6,7 +6,7 @@ import com.mattzq.migrate.entity.MigrationCollection
 import java.nio.file.Path
 import zio.*
 
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 
 class MigrationValidationError(message: String) extends Exception(message)
 
@@ -17,7 +17,8 @@ object MigrationRunnerService:
   def run(path: Path) =
     ZIO.serviceWithZIO[MigrationRunnerService](_.run(path))
 
-case class MigrationRunnerServiceImpl(db: DBAccessService, migrationService: MigrationService) extends MigrationRunnerService:
+case class MigrationRunnerServiceImpl(db: DBAccessService, migrationService: MigrationService)
+    extends MigrationRunnerService:
   override def run(path: Path): Task[Unit] =
     for {
       // read migrations from local directory
@@ -31,10 +32,8 @@ case class MigrationRunnerServiceImpl(db: DBAccessService, migrationService: Mig
 
       // create migration table if not existing
       _ <-
-        if hasDbMigrationTable then
-          ZIO.succeed(())
-        else
-          db.createMigrationTable
+        if hasDbMigrationTable then ZIO.succeed(())
+        else db.createMigrationTable
 
       // read migrations from database table
       migrationHistory <- db.getMigrationTable
@@ -54,10 +53,7 @@ case class MigrationRunnerServiceImpl(db: DBAccessService, migrationService: Mig
       _ <- Console.printLine(plan.toTableString("Apply Migrations:"))
       _ <- Console.printLine(" ")
 
-      _ <- ZIO.foreach(plan.migrations)(migration => {
-        db.runMigration(migration)
-      })
-
+      _ <- ZIO.foreach(plan.migrations)(migration => db.runMigration(migration))
 
     } yield ()
 
@@ -65,22 +61,18 @@ case class MigrationRunnerServiceImpl(db: DBAccessService, migrationService: Mig
     local.filter(m => !history.hasMigration(m))
 
   def validate(history: MigrationCollection, local: MigrationCollection): Try[Boolean] =
-    if history.migrations.isEmpty then
-      Success(true)
+    if history.migrations.isEmpty then Success(true)
     else
-      history.migrations
-        .map(migration => {
+      history
+        .migrations
+        .map { migration =>
           local.get(migration.id) match
-            case Some(otherMigration) => {
-              if (migration.hash == otherMigration.hash) then
-                Success(true)
-              else
-                Failure(MigrationValidationError(s"Migration(${migration.id}) hash miss-match!"))
-            }
-            case None => {
+            case Some(otherMigration) =>
+              if migration.hash == otherMigration.hash then Success(true)
+              else Failure(MigrationValidationError(s"Migration(${migration.id}) hash miss-match!"))
+            case None =>
               Failure(MigrationValidationError(s"Migration(${migration.id}) not found!"))
-            }
-        })
+        }
         .find(p => p.isFailure)
         .getOrElse(Success(true))
 

@@ -14,20 +14,17 @@ import scala.util.Success
 import com.mattzq.migrate.toOption
 
 sealed trait FileService:
-  /** 
-   * List files in a directory filtered by extension.
-   */
-  def list(path: Path, extension: String): Task[List[Path]] 
+  /** List files in a directory filtered by extension.
+    */
+  def list(path: Path, extension: String): Task[List[Path]]
 
-  /**
-   * Read file contents into a string.
-   */
-  def read(path: Path): Task[String] 
+  /** Read file contents into a string.
+    */
+  def read(path: Path): Task[String]
 
-  /**
-   * Hash contents to SHA-1 hex string. 
-   */
-  def hashString(contents: String): Task[String] 
+  /** Hash contents to SHA-1 hex string.
+    */
+  def hashString(contents: String): Task[String]
 
 class FileServiceImpl extends FileService:
   override def list(path: Path, extension: String): Task[List[Path]] =
@@ -39,7 +36,7 @@ class FileServiceImpl extends FileService:
         .map(files => files.asScala.toList.filter(_.toString.endsWith(extension)))
         .getOrElse(List.empty)
     }
-  
+
   override def read(path: Path): Task[String] =
     ZIO.attemptBlocking {
       Files.readString(path).toOption.getOrElse("")

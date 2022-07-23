@@ -1,7 +1,7 @@
 package com.mattzq.migrate.service
 
-import com.mattzq.migrate.entity.{Migration, MigrationCollection}
-import zio.{RLayer, Task, ZIO, ZLayer, Console}
+import com.mattzq.migrate.entity.{ Migration, MigrationCollection }
+import zio.{ RLayer, Task, ZIO, ZLayer, Console }
 
 import scala.io.Source
 
@@ -79,11 +79,14 @@ case class DBAccessServiceImpl(connection: DBConnectionService) extends DBAccess
           // Run the migration and insert it in the history in a single transaction
           stmt <- connection.prepareStatement(script)
           _ <- connection.updatePreparedStatement(stmt)
-          stmt <- connection.prepareStatement(QUERY_INSERT_MIGRATION, Some(stmt => {
-            stmt.setInt(1, migration.id)
-            stmt.setString(2, migration.name)
-            stmt.setString(3, migration.hash)
-          }))
+          stmt <- connection.prepareStatement(
+            QUERY_INSERT_MIGRATION,
+            Some { stmt =>
+              stmt.setInt(1, migration.id)
+              stmt.setString(2, migration.name)
+              stmt.setString(3, migration.hash)
+            },
+          )
           _ <- connection.updatePreparedStatement(stmt)
           _ <- connection.commit
         } yield ()

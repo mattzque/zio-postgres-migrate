@@ -1,17 +1,20 @@
 package com.mattzq.migrate
 package service
 
-import zio.{Exit, RLayer, Task, UIO, ULayer, URIO, URLayer, ZIO, ZLayer}
+import zio.{ Exit, RLayer, Task, UIO, ULayer, URIO, URLayer, ZIO, ZLayer }
 
-import java.sql.{PreparedStatement, ResultSet, Statement}
-import scala.util.{Failure, Success}
+import java.sql.{ PreparedStatement, ResultSet, Statement }
+import scala.util.{ Failure, Success }
 
 trait DBConnectionService:
   def close: UIO[Unit]
   def rollback: UIO[Unit]
   def commit: UIO[Unit]
   def hasTable(table: String): Task[Boolean]
-  def prepareStatement(query: String, setParamsFn: Option[PreparedStatement => Unit] = None): Task[PreparedStatement]
+  def prepareStatement(
+      query: String,
+      setParamsFn: Option[PreparedStatement => Unit] = None,
+    ): Task[PreparedStatement]
   def queryPreparedStatement(stmt: PreparedStatement): Task[ResultSet]
   def updatePreparedStatement(stmt: PreparedStatement): Task[Int]
 
@@ -28,7 +31,6 @@ object DBConnectionService:
 
   def updatePreparedStatement(stmt: PreparedStatement) =
     ZIO.serviceWithZIO[DBConnectionService](_.updatePreparedStatement(stmt))
-
 
 case class DBConnectionServiceImpl(private val connection: java.sql.Connection)
     extends DBConnectionService:
@@ -47,11 +49,13 @@ case class DBConnectionServiceImpl(private val connection: java.sql.Connection)
     connection.commit
     ZIO.succeed(())
 
-  override def prepareStatement(query: String, setParamsFn: Option[PreparedStatement => Unit] = None): Task[PreparedStatement] =
+  override def prepareStatement(
+      query: String,
+      setParamsFn: Option[PreparedStatement => Unit] = None,
+    ): Task[PreparedStatement] =
     ZIO.attemptBlocking {
       val stmt = connection.prepareStatement(query)
-      if (stmt == null) then
-        throw new Exception("Error preparing statement!")
+      if stmt == null then throw new Exception("Error preparing statement!")
 
       setParamsFn.foreach(_(stmt))
       stmt
@@ -61,26 +65,22 @@ case class DBConnectionServiceImpl(private val connection: java.sql.Connection)
     ZIO.attemptBlocking {
       try
         val result = stmt.executeQuery()
-        if (result == null) then
-          throw new Exception("Error executing statement!")
+        if result == null then throw new Exception("Error executing statement!")
 
         result
       catch
-        case e: Throwable => {
+        case e: Throwable =>
           connection.rollback()
           throw e
-        }
     }
 
   override def updatePreparedStatement(stmt: PreparedStatement): Task[Int] =
     ZIO.attemptBlocking {
-      try
-        stmt.executeUpdate()
+      try stmt.executeUpdate()
       catch
-        case e: Throwable => {
+        case e: Throwable =>
           connection.rollback()
           throw e
-        }
     }
 
   override def hasTable(table: String): Task[Boolean] =
@@ -88,10 +88,8 @@ case class DBConnectionServiceImpl(private val connection: java.sql.Connection)
       stmt <- prepareStatement("SELECT to_regclass(?);", Some(_.setString(1, table)))
       result <- queryPreparedStatement(stmt)
     } yield
-      if result.next() then
-        result.getString(1) != null
-      else
-        false
+      if result.next() then result.getString(1) != null
+      else false
 
 // composition object
 object DBConnectionServiceImpl:
