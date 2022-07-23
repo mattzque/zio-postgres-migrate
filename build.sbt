@@ -36,11 +36,13 @@ lazy val commonScalacOptions = Seq(
     (Compile / console / scalacOptions).value,
 )
 
-val ZHTTPVersion = "2.0.0-RC9"
+val zioVersion = "2.0.0"
 
 lazy val dependencies = Seq(
   libraryDependencies ++= Seq(
-    "dev.zio" %% "zio" % "2.0.0",
+    "dev.zio" %% "zio" % zioVersion,
+    "dev.zio" %% "zio-test" % zioVersion,
+    "dev.zio" %% "zio-test-sbt" % zioVersion,
     "org.postgresql" % "postgresql" % "42.4.0",
   ),
   libraryDependencies ++= Seq(
@@ -48,5 +50,7 @@ lazy val dependencies = Seq(
     org.scalatestplus.`scalacheck-1-16`,
   ).map(_ % Test),
 )
+
+testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
 
 Compile / run / fork := true

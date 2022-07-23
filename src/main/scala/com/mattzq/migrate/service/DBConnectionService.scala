@@ -20,33 +20,38 @@ trait DBConnectionService:
 
 // companion object
 object DBConnectionService:
-  def hasTable(table: String) =
+  def hasTable(table: String): ZIO[DBConnectionService, Throwable, Boolean] =
     ZIO.serviceWithZIO[DBConnectionService](_.hasTable(table))
 
-  def prepareStatement(query: String, setParamsFn: Option[PreparedStatement => Unit] = None) =
+  def prepareStatement(
+      query: String,
+      setParamsFn: Option[PreparedStatement => Unit] = None,
+    ): ZIO[DBConnectionService, Throwable, PreparedStatement] =
     ZIO.serviceWithZIO[DBConnectionService](_.prepareStatement(query, setParamsFn))
 
-  def queryPreparedStatement(stmt: PreparedStatement) =
+  def queryPreparedStatement(
+      stmt: PreparedStatement
+    ): ZIO[DBConnectionService, Throwable, ResultSet] =
     ZIO.serviceWithZIO[DBConnectionService](_.queryPreparedStatement(stmt))
 
-  def updatePreparedStatement(stmt: PreparedStatement) =
+  def updatePreparedStatement(stmt: PreparedStatement): ZIO[DBConnectionService, Throwable, Int] =
     ZIO.serviceWithZIO[DBConnectionService](_.updatePreparedStatement(stmt))
 
 case class DBConnectionServiceImpl(private val connection: java.sql.Connection)
     extends DBConnectionService:
   override def close: UIO[Unit] =
     println("DBConnectionServiceImpl close")
-    connection.close
+    connection.close()
     ZIO.succeed(())
 
   override def rollback: UIO[Unit] =
     println("DBConnectionServiceImpl rollback")
-    connection.rollback
+    connection.rollback()
     ZIO.succeed(())
 
   override def commit: UIO[Unit] =
     println("DBConnectionServiceImpl commit")
-    connection.commit
+    connection.commit()
     ZIO.succeed(())
 
   override def prepareStatement(
@@ -93,7 +98,7 @@ case class DBConnectionServiceImpl(private val connection: java.sql.Connection)
 
 // composition object
 object DBConnectionServiceImpl:
-  def connect(url: String) =
+  def connect(url: String): Task[DBConnectionServiceImpl] =
     for {
       _ <- ZIO.attempt(Class.forName("org.postgresql.Driver"))
       connection <- ZIO.attemptBlocking {

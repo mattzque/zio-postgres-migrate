@@ -13,7 +13,7 @@ import scala.util.Success
 
 import com.mattzq.migrate.toOption
 
-sealed trait FileService:
+trait FileService:
   /** List files in a directory filtered by extension.
     */
   def list(path: Path, extension: String): Task[List[Path]]

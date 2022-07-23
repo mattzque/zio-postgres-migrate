@@ -14,7 +14,7 @@ trait MigrationRunnerService:
   def run(path: Path): Task[Unit]
 
 object MigrationRunnerService:
-  def run(path: Path) =
+  def run(path: Path): ZIO[MigrationRunnerService, Throwable, Unit] =
     ZIO.serviceWithZIO[MigrationRunnerService](_.run(path))
 
 case class MigrationRunnerServiceImpl(db: DBAccessService, migrationService: MigrationService)
