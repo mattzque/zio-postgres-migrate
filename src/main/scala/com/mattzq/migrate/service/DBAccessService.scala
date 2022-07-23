@@ -12,16 +12,16 @@ trait DBAccessService:
   def runMigration(migration: Migration): Task[Unit]
 
 object DBAccessService:
-  def createMigrationTable =
+  def createMigrationTable: ZIO[DBAccessService, Throwable, Unit] =
     ZIO.serviceWithZIO[DBAccessService](_.createMigrationTable)
 
-  def hasMigrationTable =
+  def hasMigrationTable: ZIO[DBAccessService, Throwable, Boolean] =
     ZIO.serviceWithZIO[DBAccessService](_.hasMigrationTable)
 
-  def getMigrationTable =
+  def getMigrationTable: ZIO[DBAccessService, Throwable, MigrationCollection] =
     ZIO.serviceWithZIO[DBAccessService](_.getMigrationTable)
 
-  def runMigration(migration: Migration) =
+  def runMigration(migration: Migration): ZIO[DBAccessService, Throwable, Unit] =
     ZIO.serviceWithZIO[DBAccessService](_.runMigration(migration))
 
 case class DBAccessServiceImpl(connection: DBConnectionService) extends DBAccessService:
