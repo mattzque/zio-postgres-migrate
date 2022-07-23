@@ -39,7 +39,9 @@ case class DBAccessServiceImpl(connection: DBConnectionService) extends DBAccess
         source.close
         content
       }
-      _ <- connection.execute(query, true)
+      stmt <- connection.prepareStatement(query)
+      _ <- connection.updatePreparedStatement(stmt)
+      _ <- connection.commit
       _ <- Console.printLine("migration table created")
     } yield ()
 
@@ -48,7 +50,8 @@ case class DBAccessServiceImpl(connection: DBConnectionService) extends DBAccess
 
   override def getMigrationTable: Task[MigrationCollection] =
     for {
-      results <- connection.executeQuery(QUERY_FIND_MIGRATION_ROW, true)
+      stmt <- connection.prepareStatement(QUERY_FIND_MIGRATION_ROW)
+      results <- connection.queryPreparedStatement(stmt)
       migrations <-
         ZIO.attemptBlocking {
           var list: List[Migration] = List()
@@ -72,24 +75,18 @@ case class DBAccessServiceImpl(connection: DBConnectionService) extends DBAccess
           case Some(script) => ZIO.succeed(script)
           case None => ZIO.fail(Exception("Migration script missing!"))
       _ <-
-        {
-          for {
-            // Run the migration in a single transaction
-            _ <- connection.executeUpdate(script)
-            _ <- connection.executeUpdatePreparedQuery(QUERY_INSERT_MIGRATION, stmt => {
-              stmt.setInt(1, migration.id)
-              stmt.setString(2, migration.name)
-              stmt.setString(3, migration.hash)
-            })
-            _ <- connection.commit
-          } yield ()
-        }.catchAll {
-          error => for {
-            _ <- Console.printLine(s"Error Applying Migration ${migration.id}!")
-            _ <- Console.printLine(s"Error: ${error.toString}")
-            _ <- connection.rollback
-          } yield error
-        }
+        for {
+          // Run the migration and insert it in the history in a single transaction
+          stmt <- connection.prepareStatement(script)
+          _ <- connection.updatePreparedStatement(stmt)
+          stmt <- connection.prepareStatement(QUERY_INSERT_MIGRATION, Some(stmt => {
+            stmt.setInt(1, migration.id)
+            stmt.setString(2, migration.name)
+            stmt.setString(3, migration.hash)
+          }))
+          _ <- connection.updatePreparedStatement(stmt)
+          _ <- connection.commit
+        } yield ()
       _ <- Console.printLine(s"Migration Applied successfully. (${migration.id})")
     } yield ()
 

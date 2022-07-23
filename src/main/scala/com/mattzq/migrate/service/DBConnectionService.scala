@@ -11,28 +11,24 @@ trait DBConnectionService:
   def rollback: UIO[Unit]
   def commit: UIO[Unit]
   def hasTable(table: String): Task[Boolean]
-  def executePreparedQuery(query: String, setParamsFn: PreparedStatement => Unit, commit: Boolean = false): Task[ResultSet]
-  def executeUpdatePreparedQuery(query: String, setParamsFn: PreparedStatement => Unit, commit: Boolean = false): Task[Int]
-  def executeQuery(query: String, commit: Boolean = false): Task[ResultSet]
-  def execute(query: String, commit: Boolean = false): Task[Boolean]
-  def executeUpdate(query: String, commit: Boolean = false): Task[Int]
+  def prepareStatement(query: String, setParamsFn: Option[PreparedStatement => Unit] = None): Task[PreparedStatement]
+  def queryPreparedStatement(stmt: PreparedStatement): Task[ResultSet]
+  def updatePreparedStatement(stmt: PreparedStatement): Task[Int]
 
 // companion object
 object DBConnectionService:
   def hasTable(table: String) =
     ZIO.serviceWithZIO[DBConnectionService](_.hasTable(table))
 
-  def execute(query: String, commit: Boolean = false) =
-    ZIO.serviceWithZIO[DBConnectionService](_.execute(query, commit))
+  def prepareStatement(query: String, setParamsFn: Option[PreparedStatement => Unit] = None) =
+    ZIO.serviceWithZIO[DBConnectionService](_.prepareStatement(query, setParamsFn))
 
-  def executeQuery(query: String, commit: Boolean = false) =
-    ZIO.serviceWithZIO[DBConnectionService](_.executeQuery(query, commit))
+  def queryPreparedStatement(stmt: PreparedStatement) =
+    ZIO.serviceWithZIO[DBConnectionService](_.queryPreparedStatement(stmt))
 
-  def executeUpdate(query: String, commit: Boolean = false) =
-    ZIO.serviceWithZIO[DBConnectionService](_.executeUpdate(query, commit))
+  def updatePreparedStatement(stmt: PreparedStatement) =
+    ZIO.serviceWithZIO[DBConnectionService](_.updatePreparedStatement(stmt))
 
-  def executeUpdatePreparedQuery(query: String, setParamsFn: PreparedStatement => Unit, commit: Boolean = false) =
-    ZIO.serviceWithZIO[DBConnectionService](_.executeUpdatePreparedQuery(query, setParamsFn, commit))
 
 case class DBConnectionServiceImpl(private val connection: java.sql.Connection)
     extends DBConnectionService:
@@ -51,14 +47,19 @@ case class DBConnectionServiceImpl(private val connection: java.sql.Connection)
     connection.commit
     ZIO.succeed(())
 
-  override def executePreparedQuery(query: String, setParamsFn: PreparedStatement => Unit, commit: Boolean = false): Task[ResultSet] =
+  override def prepareStatement(query: String, setParamsFn: Option[PreparedStatement => Unit] = None): Task[PreparedStatement] =
+    ZIO.attemptBlocking {
+      val stmt = connection.prepareStatement(query)
+      if (stmt == null) then
+        throw new Exception("Error preparing statement!")
+
+      setParamsFn.foreach(_(stmt))
+      stmt
+    }
+
+  override def queryPreparedStatement(stmt: PreparedStatement): Task[ResultSet] =
     ZIO.attemptBlocking {
       try
-        val stmt = connection.prepareStatement(query)
-        if (stmt == null) then
-          throw new Exception("Error preparing statement!")
-
-        setParamsFn(stmt)
         val result = stmt.executeQuery()
         if (result == null) then
           throw new Exception("Error executing statement!")
@@ -66,103 +67,31 @@ case class DBConnectionServiceImpl(private val connection: java.sql.Connection)
         result
       catch
         case e: Throwable => {
-          println(e)
           connection.rollback()
           throw e
         }
-      finally
-        if commit then
-          connection.commit()
     }
 
-  override def executeUpdatePreparedQuery(query: String, setParamsFn: PreparedStatement => Unit, commit: Boolean = false): Task[Int] =
+  override def updatePreparedStatement(stmt: PreparedStatement): Task[Int] =
     ZIO.attemptBlocking {
       try
-        val stmt = connection.prepareStatement(query)
-        if (stmt == null) then
-          throw new Exception("Error preparing statement!")
-
-        setParamsFn(stmt)
         stmt.executeUpdate()
       catch
         case e: Throwable => {
           connection.rollback()
           throw e
         }
-      finally
-        if commit then
-          connection.commit()
     }
 
   override def hasTable(table: String): Task[Boolean] =
     for {
-      result <- executePreparedQuery("SELECT to_regclass(?);", _.setString(1, table))
+      stmt <- prepareStatement("SELECT to_regclass(?);", Some(_.setString(1, table)))
+      result <- queryPreparedStatement(stmt)
     } yield
       if result.next() then
         result.getString(1) != null
       else
         false
-
-  override def executeQuery(query: String, commit: Boolean = false): Task[ResultSet] =
-    ZIO.attemptBlocking {
-      try
-        val stmt = connection.createStatement()
-        if (stmt == null) then
-          throw new Exception("Error preparing statement!")
-
-        val result = stmt.executeQuery(query)
-        if (result == null) then
-          throw new Exception("Error executing statement!")
-
-        result
-      catch
-        case e: Throwable => {
-          println(e)
-          connection.rollback()
-          throw e
-        }
-      finally
-        if commit then
-          connection.commit()
-    }
-
-  override def execute(query: String, commit: Boolean = false): Task[Boolean] =
-    ZIO.attemptBlocking {
-      try
-        val stmt = connection.createStatement()
-        if (stmt == null) then
-          throw new Exception("Error preparing statement!")
-
-        stmt.execute(query)
-      catch
-        case e: Throwable => {
-          println(e)
-          connection.rollback()
-          throw e
-        }
-      finally
-        if commit then
-          connection.commit()
-    }
-
-  override def executeUpdate(query: String, commit: Boolean = false): Task[Int] =
-    ZIO.attemptBlocking {
-      try
-        val stmt = connection.createStatement()
-        if (stmt == null) then
-          throw new Exception("Error preparing statement!")
-
-        stmt.executeUpdate(query)
-      catch
-        case e: Throwable => {
-          println(e)
-          connection.rollback()
-          throw e
-        }
-      finally
-        if commit then
-          connection.commit()
-    }
 
 // composition object
 object DBConnectionServiceImpl:
