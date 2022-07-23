@@ -1,0 +1,21 @@
+services:
+  spacepod-pgsql01:
+    image: postgres:latest
+    container_name: spacepod-pgsql01
+    restart: always
+    ports:
+     - "10010:5432"
+    environment:
+      - POSTGRES_DB=spacepod
+      - POSTGRES_USER=spacepod
+      - POSTGRES_PASSWORD=rahmeekiS3shaiTh
+    volumes:
+      - spacepod-pgsql01-volume:/var/lib/postgresql/data
+    networks:
+      - spacepod
+
+volumes:
+  spacepod-pgsql01-volume:
+
+networks:
+  spacepod:
