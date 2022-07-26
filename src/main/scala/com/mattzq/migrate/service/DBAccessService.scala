@@ -1,8 +1,9 @@
 package com.mattzq.migrate.service
 
 import com.mattzq.migrate.entity.{ Migration, MigrationCollection }
-import zio.{ RLayer, Task, ZIO, ZLayer, Console }
+import zio.{ Console, RLayer, Task, ZIO, ZLayer }
 
+import java.nio.file.Paths
 import scala.io.Source
 
 trait DBAccessService:
@@ -24,7 +25,8 @@ object DBAccessService:
   def runMigration(migration: Migration): ZIO[DBAccessService, Throwable, Unit] =
     ZIO.serviceWithZIO[DBAccessService](_.runMigration(migration))
 
-case class DBAccessServiceImpl(connection: DBConnectionService) extends DBAccessService:
+case class DBAccessServiceImpl(connection: DBConnectionService, fileService: FileService)
+    extends DBAccessService:
   final val MIGRATION_TABLE = "migration"
   final val MIGRATION_SQL_FILE = "create_migration_table.sql"
   final val QUERY_FIND_MIGRATION_ROW = s"SELECT id, name, hash FROM $MIGRATION_TABLE;"
@@ -33,12 +35,7 @@ case class DBAccessServiceImpl(connection: DBConnectionService) extends DBAccess
   override def createMigrationTable: Task[Unit] =
     for {
       _ <- Console.printLine("create migration table")
-      query <- ZIO.attemptBlocking {
-        val source = Source.fromFile(MIGRATION_SQL_FILE)
-        val content = source.mkString
-        source.close
-        content
-      }
+      query <- fileService.read(Paths.get(MIGRATION_SQL_FILE).nn)
       stmt <- connection.prepareStatement(query)
       _ <- connection.updatePreparedStatement(stmt)
       _ <- connection.commit
@@ -94,9 +91,10 @@ case class DBAccessServiceImpl(connection: DBConnectionService) extends DBAccess
     } yield ()
 
 object DBAccessServiceImpl:
-  lazy val layer: RLayer[DBConnectionService, DBAccessService] =
+  lazy val layer: RLayer[DBConnectionService & FileService, DBAccessService] =
     ZLayer.scoped {
       for {
         database <- ZIO.service[DBConnectionService]
-      } yield DBAccessServiceImpl(database)
+        fileService <- ZIO.service[FileService]
+      } yield DBAccessServiceImpl(database, fileService)
     }

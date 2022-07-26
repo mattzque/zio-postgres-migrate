@@ -1,10 +1,11 @@
 package com.mattzq.migrate
 package service
 
-import zio.{ Exit, RLayer, Task, UIO, ULayer, URIO, URLayer, ZIO, ZLayer }
+import zio.Runtime.Scoped
+import zio.{ Exit, RLayer, Scope, Task, UIO, ULayer, URIO, URLayer, ZEnvironment, ZIO, ZLayer }
 
 import java.sql.{ PreparedStatement, ResultSet, Statement }
-import scala.util.{ Failure, Success }
+import scala.util.{ Failure, Success, Try }
 
 trait DBConnectionService:
   def close: UIO[Unit]

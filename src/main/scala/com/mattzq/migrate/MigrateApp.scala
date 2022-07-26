@@ -13,7 +13,8 @@ import org.rogach.scallop.*
 
 class Config(arguments: Seq[String]) extends ScallopConf(arguments):
   version("migrate 0.0.1")
-  val migrationPath = trailArg[String](required = true, descr = "Path to directory with migration files.")
+  val migrationPath =
+    trailArg[String](required = true, descr = "Path to directory with migration files.")
   verify()
 
 object MigrateApp extends ZIOAppDefault:
