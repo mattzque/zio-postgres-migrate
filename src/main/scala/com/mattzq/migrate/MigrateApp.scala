@@ -33,7 +33,7 @@ object MigrateApp extends ZIOAppDefault:
   def run =
     for {
       args <- getArgs.map(_.toList)
-      config <- ZIO.succeed(Config(args))
+      config <- ZIO.attempt(Config(args))
 
       path <-
         val path = Paths.get(config.migrationPath().nn)
