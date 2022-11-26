@@ -3,15 +3,14 @@ package migrate
 
 import java.io.IOException
 import java.nio.file.{ Files, Path, Paths }
-import zio.{ Console, ZIO, ZIOAppDefault }
 
-import java.nio.file.{ Files, Path, Paths }
-import java.sql.Connection
-import scala.util.{ Failure, Properties, Success }
-import service.*
+import zio.{ Console, ZIO, ZIOAppDefault }
 import scopt.OParser
-import scala.concurrent.Future
+
+import service.*
+
 case class Config(migrationPath: String = ".")
+
 object Config:
   def parse(args: Seq[String]): Option[Config] =
     val builder = OParser.builder[Config]

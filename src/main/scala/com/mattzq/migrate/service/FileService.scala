@@ -10,6 +10,7 @@ import scala.util.Try
 import scala.util.Failure
 import zio.*
 import scala.util.Success
+import scala.io.Source
 
 import com.mattzq.migrate.toOption
 
@@ -17,6 +18,10 @@ trait FileService:
   /** List files in a directory filtered by extension.
     */
   def list(path: Path, extension: String): Task[List[Path]]
+
+  /** Read file contents into a string.
+    */
+  def readResource(resource: String): Task[String]
 
   /** Read file contents into a string.
     */
@@ -35,6 +40,11 @@ class FileServiceImpl extends FileService:
         .flatMap(_.iterator.toOption)
         .map(files => files.asScala.toList.filter(_.toString.endsWith(extension)))
         .getOrElse(List.empty)
+    }
+
+  override def readResource(resource: String): Task[String] =
+    ZIO.attemptBlocking {
+      Source.fromResource(resource).mkString.toOption.getOrElse("")
     }
 
   override def read(path: Path): Task[String] =

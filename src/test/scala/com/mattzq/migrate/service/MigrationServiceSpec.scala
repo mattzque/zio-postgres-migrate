@@ -18,6 +18,9 @@ class FileServiceMock extends FileService:
       )
     )
 
+  override def readResource(resource: String): Task[String] =
+    ZIO.succeed("foo")
+
   override def read(path: Path): Task[String] =
     ZIO.succeed("foo")
 

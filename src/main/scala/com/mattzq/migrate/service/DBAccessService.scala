@@ -3,9 +3,6 @@ package com.mattzq.migrate.service
 import com.mattzq.migrate.entity.{ Migration, MigrationCollection }
 import zio.{ Console, RLayer, Task, ZIO, ZLayer }
 
-import java.nio.file.Paths
-import scala.io.Source
-
 trait DBAccessService:
   def createMigrationTable: Task[Unit]
   def hasMigrationTable: Task[Boolean]
@@ -35,7 +32,7 @@ case class DBAccessServiceImpl(connection: DBConnectionService, fileService: Fil
   override def createMigrationTable: Task[Unit] =
     for {
       _ <- Console.printLine("create migration table")
-      query <- fileService.read(Paths.get(MIGRATION_SQL_FILE).nn)
+      query <- fileService.readResource(MIGRATION_SQL_FILE)
       stmt <- connection.prepareStatement(query)
       _ <- connection.updatePreparedStatement(stmt)
       _ <- connection.commit
