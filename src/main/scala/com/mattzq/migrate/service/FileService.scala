@@ -5,7 +5,7 @@ import java.nio.file.Path
 import java.nio.file.Files
 
 import java.security.MessageDigest
-import collection.JavaConverters.*
+import scala.jdk.CollectionConverters.*
 import scala.util.Try
 import scala.util.Failure
 import zio.*
