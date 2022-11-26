@@ -43,7 +43,7 @@ lazy val dependencies = Seq(
     "dev.zio" %% "zio" % zioVersion,
     "dev.zio" %% "zio-test" % zioVersion,
     "dev.zio" %% "zio-test-sbt" % zioVersion,
-    "org.rogach" %% "scallop" % "4.1.0",
+    "com.github.scopt" %% "scopt" % "4.1.0",
     "org.postgresql" % "postgresql" % "42.4.0",
   ),
   libraryDependencies ++= Seq(
