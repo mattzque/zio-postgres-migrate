@@ -17,7 +17,7 @@ trait DBConnectionService:
       setParamsFn: Option[PreparedStatement => Unit] = None,
     ): Task[PreparedStatement]
   def queryPreparedStatement(stmt: PreparedStatement): Task[ResultSet]
-  def updatePreparedStatement(stmt: PreparedStatement): Task[Int]
+  def updatePreparedStatement(stmt: PreparedStatement): Task[Boolean]
 
 // companion object
 object DBConnectionService:
@@ -35,7 +35,7 @@ object DBConnectionService:
     ): ZIO[DBConnectionService, Throwable, ResultSet] =
     ZIO.serviceWithZIO[DBConnectionService](_.queryPreparedStatement(stmt))
 
-  def updatePreparedStatement(stmt: PreparedStatement): ZIO[DBConnectionService, Throwable, Int] =
+  def updatePreparedStatement(stmt: PreparedStatement): ZIO[DBConnectionService, Throwable, Boolean] =
     ZIO.serviceWithZIO[DBConnectionService](_.updatePreparedStatement(stmt))
 
 case class DBConnectionServiceImpl(private val connection: java.sql.Connection)
@@ -80,9 +80,9 @@ case class DBConnectionServiceImpl(private val connection: java.sql.Connection)
           throw e
     }
 
-  override def updatePreparedStatement(stmt: PreparedStatement): Task[Int] =
+  override def updatePreparedStatement(stmt: PreparedStatement): Task[Boolean] =
     ZIO.attemptBlocking {
-      try stmt.executeUpdate()
+      try stmt.execute()
       catch
         case e: Throwable =>
           connection.rollback()
